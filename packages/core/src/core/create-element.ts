@@ -3,15 +3,36 @@ import options from './options';
 
 let vnodeId = 0;
 
+export type RefValue = HTMLElement | null;
+export type Ref = { (value: RefValue): void; } | { current: RefValue; };
+
+export interface VNode {
+	type: string | { new(...args: unknown[]): unknown };
+	props: Record<string, unknown>;
+	key: string;
+	ref: Ref;
+	_children: null;
+	_parent: null;
+	_depth: number;
+	_dom: null;
+	_nextDom: undefined;
+	_component: null;
+	_hydrating: null;
+	constructor: undefined;
+	_original: any;
+}
+
+interface CreateElement {
+	(type: VNode['type'], props: VNode['props'], children: VNode[]): VNode;
+}
+
 /**
  * Create an virtual node (used for JSX)
- * @param type The node name or Component
- * constructor for this virtual node
- * @param {object | null | undefined} props The properties of the virtual node
+ * @param type The node name or Component constructor for this virtual node
+ * @param props The properties of the virtual node
  * @param children The children of the virtual node
- * @returns
  */
-export function createElement(type, props, children) {
+export const createElement: CreateElement = function (type, props, children) {
 	let normalizedProps = {},
 		key,
 		ref,
