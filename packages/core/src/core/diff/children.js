@@ -13,7 +13,6 @@ import { getDomSibling } from '../component';
  * @param oldParentVNode The old virtual
  * node whose children should be diff'ed against newParentVNode
  * @param {boolean} isSvg Whether or not this DOM node is an SVG node
- * @param excessDomChildren
  * @param oldDom The current attached DOM
  * element any new dom elements should be placed around. Likely `null` on first
  * render (except when hydrating). Can be a sibling DOM element when diffing
@@ -25,7 +24,6 @@ export function diffChildren(
 	newParentVNode,
 	oldParentVNode,
 	isSvg,
-	excessDomChildren,
 	oldDom,
 ) {
 	let i, j, oldVNode, childVNode, newDom, firstChildDom, refs;
@@ -42,8 +40,8 @@ export function diffChildren(
 
 		if (
 			childVNode == null ||
-			typeof childVNode == 'boolean' ||
-			typeof childVNode == 'function'
+			typeof childVNode === 'boolean' ||
+			typeof childVNode === 'function'
 		) {
 			childVNode = newParentVNode._children[i] = null;
 		}
@@ -52,10 +50,10 @@ export function diffChildren(
 		// or we are rendering a component copy the oldVNodes so it can have
 		// it's own DOM & etc. pointers
 		else if (
-			typeof childVNode == 'string' ||
-			typeof childVNode == 'number' ||
+			typeof childVNode === 'string' ||
+			typeof childVNode === 'number' ||
 			// eslint-disable-next-line valid-typeof
-			typeof childVNode == 'bigint'
+			typeof childVNode === 'bigint'
 		) {
 			childVNode = newParentVNode._children[i] = createVNode(
 				null,
@@ -137,7 +135,6 @@ export function diffChildren(
 			childVNode,
 			oldVNode,
 			isSvg,
-			excessDomChildren,
 			oldDom,
 		);
 
@@ -155,7 +152,7 @@ export function diffChildren(
 			}
 
 			if (
-				typeof childVNode.type == 'function' &&
+				typeof childVNode.type === 'function' &&
 				childVNode._children === oldVNode._children
 			) {
 				childVNode._nextDom = oldDom = reorderChildren(
@@ -174,7 +171,7 @@ export function diffChildren(
 				);
 			}
 
-			if (typeof newParentVNode.type == 'function') {
+			if (typeof newParentVNode.type === 'function') {
 				// Because the newParentVNode is Fragment-like, we need to set it's
 				// _nextDom property to the nextSibling of its last child DOM node.
 				//
@@ -201,7 +198,7 @@ export function diffChildren(
 	for (i = oldChildrenLength; i--;) {
 		if (oldChildren[i] != null) {
 			if (
-				typeof newParentVNode.type == 'function' &&
+				typeof newParentVNode.type === 'function' &&
 				oldChildren[i]._dom != null &&
 				oldChildren[i]._dom == newParentVNode._nextDom
 			) {
@@ -236,7 +233,7 @@ function reorderChildren(childVNode, oldDom, parentDom) {
 			// (childVNode here).
 			vnode._parent = childVNode;
 
-			if (typeof vnode.type == 'function') {
+			if (typeof vnode.type === 'function') {
 				oldDom = reorderChildren(vnode, oldDom, parentDom);
 			} else {
 				oldDom = placeChild(parentDom, vnode, vnode, c, vnode._dom, oldDom);

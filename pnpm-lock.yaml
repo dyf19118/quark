@@ -56,6 +56,9 @@ importers:
       '@babel/runtime':
         specifier: ^7.22.5
         version: 7.22.5
+      tslib:
+        specifier: ^2.6.2
+        version: 2.6.2
     devDependencies:
       '@babel/core':
         specifier: ^7.22.5
@@ -92,7 +95,7 @@ importers:
         version: 0.4.4(rollup@4.17.0)
       '@rollup/plugin-typescript':
         specifier: ^11.1.6
-        version: 11.1.6(rollup@4.17.0)(typescript@5.4.5)
+        version: 11.1.6(rollup@4.17.0)(tslib@2.6.2)(typescript@5.4.5)
       '@types/mocha':
         specifier: ^10.0.6
         version: 10.0.6
@@ -2617,7 +2620,7 @@ packages:
       terser: 5.30.4
     dev: true
 
-  /@rollup/plugin-typescript@11.1.6(rollup@4.17.0)(typescript@5.4.5):
+  /@rollup/plugin-typescript@11.1.6(rollup@4.17.0)(tslib@2.6.2)(typescript@5.4.5):
     resolution: {integrity: sha512-R92yOmIACgYdJ7dJ97p4K69I8gg6IEHt8M7dUBxN3W6nrO8uUxX5ixl0yU/N3aZTi8WhPuICvOHXQvF6FaykAA==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
@@ -2633,6 +2636,7 @@ packages:
       '@rollup/pluginutils': 5.1.0(rollup@4.17.0)
       resolve: 1.22.2
       rollup: 4.17.0
+      tslib: 2.6.2
       typescript: 5.4.5
     dev: true
 

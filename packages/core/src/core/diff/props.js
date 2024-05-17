@@ -36,7 +36,7 @@ function setStyle(style, key, value) {
 		style.setProperty(key, value == null ? '' : value);
 	} else if (value == null) {
 		style[key] = '';
-	} else if (typeof value != 'number' || IS_NON_DIMENSIONAL.test(key)) {
+	} else if (typeof value !== 'number' || IS_NON_DIMENSIONAL.test(key)) {
 		style[key] = value;
 	} else {
 		style[key] = value + 'px';
@@ -55,10 +55,10 @@ export function setProperty(dom, name, value, oldValue, isSvg) {
 	let useCapture;
 
 	o: if (name === 'style') {
-		if (typeof value == 'string') {
+		if (typeof value === 'string') {
 			dom.style.cssText = value;
 		} else {
-			if (typeof oldValue == 'string') {
+			if (typeof oldValue === 'string') {
 				dom.style.cssText = oldValue = '';
 			}
 

@@ -1,29 +1,40 @@
-import { slice } from './util';
-import options from './options';
+import { Component } from './component';
 
+/** vnode's global id */
 let vnodeId = 0;
 
-export type RefValue = HTMLElement | null;
-export type Ref = { (value: RefValue): void; } | { current: RefValue; };
+export type Ref<T = unknown> = { current: T | null; };
+
+export type RawProps = {
+	ref?: Ref<HTMLElement> | { (value: HTMLElement | null): void; };
+	key?: string | undefined;
+	[propKey: string]: unknown;
+};
+
+export type VElem = string | number | null | undefined | boolean | VNode | VElem[];
+
+export type NormalizedProps = (Omit<RawProps, 'key' | 'ref'> & { children?: VElem[] });
+
+export type RenderFunc = { (props: NormalizedProps): VElem };
 
 export interface VNode {
-	type: string | { new(...args: unknown[]): unknown };
-	props: Record<string, unknown>;
-	key: string;
-	ref: Ref;
-	_children: null;
-	_parent: null;
+	/** typeof the element, element tag or Fragment */
+	type: string | RenderFunc;
+	props: NormalizedProps | string | number;
+	key: RawProps['key'];
+	ref: RawProps['ref'];
+	_children: VNode[] | null | undefined;
+	_parent: VNode | null | undefined;
+	/** vnode's depth in the tree, default to 0 if it has not beed used */
 	_depth: number;
-	_dom: null;
+	_dom: null | HTMLElement;
 	_nextDom: undefined;
-	_component: null;
-	_hydrating: null;
+	/** component instance of vnode whose type is function */
+	_component: InstanceType<typeof Component> | null;
+	/** component constructor of vnode whose type is function */
 	constructor: undefined;
-	_original: any;
-}
-
-interface CreateElement {
-	(type: VNode['type'], props: VNode['props'], children: VNode[]): VNode;
+	/** vnode's id, or it's prototype (current vnode is the clone of the prototype)  */
+	_original: VNode | string | number | bigint | null;
 }
 
 /**
@@ -32,30 +43,19 @@ interface CreateElement {
  * @param props The properties of the virtual node
  * @param children The children of the virtual node
  */
-export const createElement: CreateElement = function (type, props, children) {
-	let normalizedProps = {},
+export function createElement(
+	type:  VNode['type'],
+	props: RawProps | null,
+	...children: VElem[]
+) {
+	const {
 		key,
 		ref,
-		i;
-	for (i in props) {
-		if (i == 'key') key = props[i];
-		else if (i == 'ref') ref = props[i];
-		else normalizedProps[i] = props[i];
-	}
+		...normalizedProps
+	} = { ...props };
 
-	if (arguments.length > 2) {
-		normalizedProps.children =
-			arguments.length > 3 ? slice.call(arguments, 2) : children;
-	}
-
-	// If a Component VNode, check for and apply defaultProps
-	// Note: type may be undefined in development, must never error here.
-	if (typeof type == 'function' && type.defaultProps != null) {
-		for (i in type.defaultProps) {
-			if (normalizedProps[i] === undefined) {
-				normalizedProps[i] = type.defaultProps[i];
-			}
-		}
+	if (children.length) {
+		normalizedProps.children = children;
 	}
 
 	return createVNode(type, normalizedProps, key, ref, null);
@@ -63,17 +63,20 @@ export const createElement: CreateElement = function (type, props, children) {
 
 /**
  * Create a VNode (used internally by quark)
- * @param type The node name or Component
- * Constructor for this virtual node
- * @param {object | string | number | null} props The properties of this virtual node.
+ * @param type The node name or Component Constructor for this virtual node
+ * @param props The properties of this virtual node.
  * If this virtual node represents a text node, this is the text of the node (string or number).
- * @param {string | number | null} key The key for this virtual node, used when
- * diffing it against its children
- * @param ref The ref property that will
- * receive a reference to its created child
+ * @param key The key for this virtual node, used when diffing it against its children
+ * @param ref The ref property that will receive a reference to its created child
  * @returns
  */
-export function createVNode(type, props, key, ref, original) {
+export function createVNode(
+	type: VNode['type'],
+	props: VNode['props'],
+	key: VNode['key'],
+	ref: VNode['ref'],
+	original: VNode | string | number | bigint | null
+): VNode {
 	// V8 seems to be better at detecting type shapes if the object is allocated from the same call site
 	// Do not inline into createElement and coerceToVNode!
 	const vnode = {
@@ -91,21 +94,17 @@ export function createVNode(type, props, key, ref, original) {
 		// a _nextDom that has been set to `null`
 		_nextDom: undefined,
 		_component: null,
-		_hydrating: null,
 		constructor: undefined,
 		_original: original == null ? ++vnodeId : original
 	};
-
-	// Only invoke the vnode hook if this was *not* a direct copy:
-	if (original == null && options.vnode != null) options.vnode(vnode);
-
 	return vnode;
 }
 
-export function createRef() {
+/** creates a ref object which can contain arbitrary value */
+export function createRef<T>(): Ref<T> {
 	return { current: null };
 }
 
-export function Fragment(props) {
+export function Fragment(props: NormalizedProps) {
 	return props.children;
 }

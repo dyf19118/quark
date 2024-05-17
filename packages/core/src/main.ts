@@ -1,4 +1,4 @@
-import { createElement as h, Fragment } from './core/create-element'
+import { createElement as h, Fragment, VElem } from './core/create-element'
 import { render } from './core/render'
 import { isFunction } from './core/util'
 import { PropertyDeclaration } from "./models"
@@ -7,16 +7,10 @@ import { EventController, EventHandler } from "./eventController"
 import {version} from '../package.json'
 import { Dep, nextTick, UserWatcherOptions, Watcher } from './computed';
 import type { ReactiveControllerHost, ReactiveController } from "./reactiveController"
+export { createRef } from './core/create-element'
+export type { Ref } from './core/create-element'
 export type { ReactiveControllerHost, ReactiveController }
 
-
-export interface Ref<T = any> {
-  current: T;
-}
-
-export function createRef<T = any>(): Ref<T | null> {
-  return { current: null };
-}
 
 export { Fragment }
 
@@ -624,8 +618,8 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
    * 自动执行 this.shadowRoot.innerHTML = this.render()
    * @returns VNode
    */
-  render() {
-    return "" as any;
+  render(): VElem {
+    return null;
   }
 
   private getOrInitRenderWatcher() {

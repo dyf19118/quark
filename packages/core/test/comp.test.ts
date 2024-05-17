@@ -1,6 +1,7 @@
-import { fixture, expect } from '@open-wc/testing';
+import { expect } from '@open-wc/testing';
 import { spy } from 'sinon';
 import { nextTick } from '../src/computed';
+import { renderHelper } from './utils';
 import './components/hello-world';
 import './components/quark-counter';
 import './components/test-property';
@@ -8,17 +9,8 @@ import './components/test-fragment';
 import './components/test-watch';
 import { ComputedWatcherSpies, ImmediateWatcherSpies } from './components/test-watch';
 
-const renderHelper = <T extends Element>(tag: string) => {
-  return (props: Record<string, any> = {}, children?: string) => {
-    const attrs = Object.entries(props)
-      .reduce((acc, [key, value]) => [...acc, `${key}=${value}`], [] as string[])
-      .join(' ');
-    return fixture<T>(`<${tag} ${attrs}>${children}</${tag}>`);
-  };
-};
-
 describe('<hello-world>', () => {
-  const render = renderHelper<HTMLElementTagNameMap['hello-world']>('hello-world');
+  const render = renderHelper('hello-world');
   
   it('nodes exist', async () => {
     const comp = await render();
@@ -34,7 +26,7 @@ describe('<hello-world>', () => {
 });
 
 describe('<quark-counter>', () => {
-  const render = renderHelper<HTMLElementTagNameMap['quark-counter']>('quark-counter');
+  const render = renderHelper('quark-counter');
   
   it('nodes exist', async () => {
     const comp = await render();
@@ -67,7 +59,7 @@ describe('<quark-counter>', () => {
 });
 
 describe('@property', () => {
-  const render = renderHelper<HTMLElementTagNameMap['test-property']>('test-property');
+  const render = renderHelper('test-property');
 
   it('nodes exist', async () => {
     const comp = await render();
@@ -171,7 +163,7 @@ describe('@property', () => {
 });
 
 describe('Fragment', () => {
-  const render = renderHelper<HTMLElementTagNameMap['test-fragment']>('test-fragment');
+  const render = renderHelper('test-fragment');
   it('supports multiple roots', async () => {
     const comp = await render();
     const node1 = comp.shadowRoot?.querySelector('.root1');
@@ -184,7 +176,7 @@ describe('Fragment', () => {
 });
 
 describe('@watch and @computed', () => {
-  const render = renderHelper<HTMLElementTagNameMap['test-watch']>('test-watch');
+  const render = renderHelper('test-watch');
 
   it('nodes exist', async () => {
     const comp = await render();

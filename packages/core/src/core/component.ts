@@ -1,28 +1,38 @@
-import { Fragment } from './create-element';
+import { NormalizedProps, RenderFunc, VNode } from './create-element';
 
-/**
- * Base Component class.
- * @param {object} props The initial component props
- */
-export function Component(props) {
-	this.props = props;
-	this._dirty = false;
+// Define an interface for the instance type
+interface RenderCompInst {
+	props: NormalizedProps;
+	render: RenderFunc;
+	_dirty: boolean;
+	_vnode: VNode | null;
+	_parentDom: Node | null;
+	base: HTMLElement | null;
 }
 
 /**
- * Accepts `props`, and returns a new Virtual DOM tree to build.
- * Virtual DOM is generally constructed via [JSX](http://jasonformat.com/wtf-is-jsx).
- * @param {object} props Props (eg: JSX attributes) received from parent
- * element/component
- * @returns {import('./index').ComponentChildren | void}
+ * Base Component class.
  */
-Component.prototype.render = Fragment;
+export class Component implements RenderCompInst {
+	props: NormalizedProps;
+	render: RenderFunc;
+	base: HTMLElement | null = null;
+	_dirty = false;
+	_vnode: VNode | null = null;
+	_parentDom: Node | null = null;
+
+	constructor(props: NormalizedProps, render: RenderFunc) {
+		this.props = props;
+		this.render = render;
+		this._dirty = true;
+	}
+}
 
 /**
  * @param vnode
- * @param {number | null} [childIndex]
+ * @param childIndex
  */
-export function getDomSibling(vnode, childIndex) {
+export function getDomSibling(vnode, childIndex?: number) {
 	if (childIndex == null) {
 		// Use childIndex==null as a signal to resume the search from the vnode's sibling
 		return vnode._parent
@@ -47,5 +57,5 @@ export function getDomSibling(vnode, childIndex) {
 	// Only climb up and search the parent if we aren't searching through a DOM
 	// VNode (meaning we reached the DOM parent of the original vnode that began
 	// the search)
-	return typeof vnode.type == 'function' ? getDomSibling(vnode) : null;
+	return typeof vnode.type === 'function' ? getDomSibling(vnode) : null;
 }

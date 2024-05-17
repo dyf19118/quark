@@ -1,6 +1,6 @@
 /**
  * Find the closest error boundary to a thrown error and call it
- * @param {object} error The thrown value
+ * @param error The thrown value
  * @param vnode The vnode that threw
  * the error that was caught (except for unmounting when this parameter
  * is the highest parent that was being unmounted)

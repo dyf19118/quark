@@ -1,140 +1,109 @@
 import { EMPTY_OBJ } from '../constants';
 import { Component, getDomSibling } from '../component';
-import { Fragment } from '../create-element';
+import { NormalizedProps, VElem, VNode } from '../create-element';
 import { diffChildren } from './children';
 import { diffProps, setProperty } from './props';
-import { slice } from '../util';
-import options from '../options';
 
 /**
  * Diff two virtual nodes and apply proper changes to the DOM
  * @param parentDom The parent of the DOM element
  * @param newVNode The new virtual node
  * @param oldVNode The old virtual node
- * @param {boolean} isSvg Whether or not this element is an SVG node
- * @param excessDomChildren
+ * @param isSvg Whether or not this element is an SVG node
  * @param oldDom The current attached DOM
  * element any new dom elements should be placed around. Likely `null` on first
  * render (except when hydrating). Can be a sibling DOM element when diffing
  * Fragments that have siblings. In most cases, it starts out as `oldChildren[0]._dom`.
  */
 export function diff(
-	parentDom,
-	newVNode,
-	oldVNode,
-	isSvg,
-	excessDomChildren,
-	oldDom,
+	parentDom: Node,
+	newVNode: VNode,
+	oldVNode: VNode | undefined,
+	isSvg: boolean,
+	oldDom: Node | null,
 ) {
-	let tmp,
-		newType = newVNode.type;
+	const { type } = newVNode;
 
 	// When passing through createElement it assigns the object
 	// constructor as undefined. This to prevent JSON-injection.
 	if (newVNode.constructor !== undefined) return null;
 
-	if ((tmp = options._diff)) tmp(newVNode);
-
 	try {
-		outer: if (typeof newType == 'function') {
-			let c, isNew, oldProps, clearProcessingException;
-			let newProps = newVNode.props;
+		if (typeof type === 'function') {
+			let c: VNode['_component'];
+			let isNew = false;
+			const newProps = newVNode.props as NormalizedProps;
 
-			// Get component and set it to `c`
-			if (oldVNode._component) {
+			if (oldVNode?._component) {
 				c = newVNode._component = oldVNode._component;
-				clearProcessingException = c._processingException = c._pendingError;
 			} else {
-				if ('prototype' in newType && newType.prototype.render) {
+				if ('prototype' in type && type.prototype.render) {
 					if (process.env.NODE_ENV === 'development') {
 						throw new Error('Class component in render method is not supported.')
 					}
 				}
 
-				newVNode._component = c = new Component(newProps);
-				c.constructor = newType;
-				c.render = doRender;
-				c.props = newProps;
-				isNew = c._dirty = true;
+				newVNode._component = c = new Component(newProps, type);
+				isNew = true;
 			}
 
-			oldProps = c.props;
 			c._vnode = newVNode;
 
-			if (isNew) {
-				// noop
-			} else {
-				if (newVNode._original === oldVNode._original) {
-					newVNode._dom = oldVNode._dom;
-					newVNode._children = oldVNode._children;
-					newVNode._children.forEach(vnode => {
-						if (vnode) vnode._parent = newVNode;
-					});
-					break outer;
-				}
+			if (!isNew && newVNode._original === oldVNode?._original) {
+				// clone the old node and its children
+				newVNode._dom = oldVNode._dom;
+				newVNode._children = oldVNode._children?.map((vnode) => {
+					if (vnode) {
+						vnode._parent = newVNode;
+					}
+
+					return vnode;
+				});
+				
+				// quit the diff early
+				return;
 			}
 
 			c.props = newProps;
 			c._parentDom = parentDom;
 
-			let renderHook = options._render;
 			let count = 0;
+			let renderRet: VElem;
 
 			do {
 				c._dirty = false;
-				if (renderHook) renderHook(newVNode);
-
-				tmp = c.render(c.props);
-
+				renderRet = c.render(c.props);
 				// Handle state change in render
 			} while (c._dirty && ++count < 25);
 
-			let isTopLevelFragment =
-				tmp != null && tmp.type === Fragment && tmp.key == null;
-			let renderResult = isTopLevelFragment ? tmp.props.children : tmp;
-
 			diffChildren(
 				parentDom,
-				Array.isArray(renderResult) ? renderResult : [renderResult],
+				Array.isArray(renderRet) ? renderRet : [renderRet],
 				newVNode,
 				oldVNode,
 				isSvg,
-				excessDomChildren,
 				oldDom,
 			);
 
 			c.base = newVNode._dom;
 
-			if (clearProcessingException) {
-				c._pendingError = c._processingException = null;
-			}
-		} else if (
-			excessDomChildren == null &&
-			newVNode._original === oldVNode._original
-		) {
-			newVNode._children = oldVNode._children;
-			newVNode._dom = oldVNode._dom;
-		} else {
-			newVNode._dom = diffElementNodes(
-				oldVNode._dom,
-				newVNode,
-				oldVNode,
-				isSvg,
-				excessDomChildren,
-			);
+			return;
 		}
 
-		if ((tmp = options.diffed)) tmp(newVNode);
+		if (newVNode._original === oldVNode?._original) {
+			newVNode._children = oldVNode._children;
+			newVNode._dom = oldVNode._dom;
+			return;
+		}
+		
+		newVNode._dom = diffElementNodes(
+			oldVNode?._dom,
+			newVNode,
+			oldVNode,
+			isSvg,
+		);
 	} catch (e) {
 		newVNode._original = null;
-		// if hydrating or creating initial tree, bailout preserves DOM:
-		if (excessDomChildren != null) {
-			newVNode._dom = oldDom;
-			excessDomChildren[excessDomChildren.indexOf(oldDom)] = null;
-			// ^ could possibly be simplified to:
-			// excessDomChildren.length = 0;
-		}
-		options._catchError(e, newVNode, oldVNode);
 	}
 }
 
@@ -144,8 +113,7 @@ export function diff(
  * the virtual nodes being diffed
  * @param newVNode The new virtual node
  * @param oldVNode The old virtual node
- * @param {boolean} isSvg Whether or not this DOM node is an SVG node
- * @param excessDomChildren
+ * @param isSvg Whether or not this DOM node is an SVG node
  * @returns
  */
 function diffElementNodes(
@@ -153,7 +121,6 @@ function diffElementNodes(
 	newVNode,
 	oldVNode,
 	isSvg,
-	excessDomChildren,
 ) {
 	let oldProps = oldVNode.props;
 	let newProps = newVNode.props;
@@ -163,47 +130,22 @@ function diffElementNodes(
 	// Tracks entering and exiting SVG namespace when descending through the tree.
 	if (nodeType === 'svg') isSvg = true;
 
-	if (excessDomChildren != null) {
-		for (; i < excessDomChildren.length; i++) {
-			const child = excessDomChildren[i];
-
-			// if newVNode matches an element in excessDomChildren or the `dom`
-			// argument matches an element in excessDomChildren, remove it from
-			// excessDomChildren so it isn't later removed in diffChildren
-			if (
-				child &&
-				'setAttribute' in child === !!nodeType &&
-				(nodeType ? child.localName === nodeType : child.nodeType === 3)
-			) {
-				dom = child;
-				excessDomChildren[i] = null;
-				break;
-			}
-		}
-	}
-
 	if (dom == null) {
 		if (nodeType === null) {
-			// @ts-ignore createTextNode returns Text, we expect QuarkElement
 			return document.createTextNode(newProps);
 		}
 
 		if (isSvg) {
 			dom = document.createElementNS(
 				'http://www.w3.org/2000/svg',
-				// @ts-ignore We know `newVNode.type` is a string
 				nodeType
 			);
 		} else {
 			dom = document.createElement(
-				// @ts-ignore We know `newVNode.type` is a string
 				nodeType,
 				newProps.is && newProps
 			);
 		}
-
-		// we created a new parent, so none of the previously attached children can be reused:
-		excessDomChildren = null;
 	}
 
 	if (nodeType === null) {
@@ -211,23 +153,10 @@ function diffElementNodes(
 			dom.data = newProps;
 		}
 	} else {
-		// If excessDomChildren was not null, repopulate it with the current element's children:
-		excessDomChildren = excessDomChildren && slice.call(dom.childNodes);
-
 		oldProps = oldVNode.props || EMPTY_OBJ;
 
 		let oldHtml = oldProps.dangerouslySetInnerHTML;
 		let newHtml = newProps.dangerouslySetInnerHTML;
-
-		// TODO we should warn in debug mode when props don't match here.
-		// But, if we are in a situation where we are using existing DOM (e.g. replaceNode)
-		// we should read the existing DOM attributes to diff them
-		if (excessDomChildren != null) {
-			oldProps = {};
-			for (i = 0; i < dom.attributes.length; i++) {
-				oldProps[dom.attributes[i].name] = dom.attributes[i].value;
-			}
-		}
 
 		if (newHtml || oldHtml) {
 			// Avoid re-applying the same '__html' if it did not changed between re-render
@@ -253,18 +182,8 @@ function diffElementNodes(
 				newVNode,
 				oldVNode,
 				isSvg && nodeType !== 'foreignObject',
-				excessDomChildren,
-				excessDomChildren
-					? excessDomChildren[0]
-					: oldVNode._children && getDomSibling(oldVNode, 0),
+				oldVNode._children && getDomSibling(oldVNode, 0),
 			);
-
-			// Remove children that are not part of any vnode.
-			if (excessDomChildren != null) {
-				for (i = excessDomChildren.length; i--;) {
-					if (excessDomChildren[i] != null) excessDomChildren[i].remove();
-				}
-			}
 		}
 
 		if (
@@ -297,16 +216,16 @@ function diffElementNodes(
 
 /**
  * Invoke or update a ref, depending on whether it is a function or object ref.
- * @param {object|function} ref
- * @param {any} value
+ * @param ref
+ * @param value
  * @param vnode
  */
 export function applyRef(ref, value, vnode) {
 	try {
-		if (typeof ref == 'function') ref(value);
+		if (typeof ref === 'function') ref(value);
 		else ref.current = value;
 	} catch (e) {
-		options._catchError(e, vnode);
+		// noop
 	}
 }
 
@@ -320,7 +239,6 @@ export function applyRef(ref, value, vnode) {
  */
 export function unmount(vnode, parentVNode, skipRemove) {
 	let r;
-	if (options.unmount) options.unmount(vnode);
 
 	if ((r = vnode.ref)) {
 		if (!r.current || r.current === vnode._dom) {
@@ -352,9 +270,4 @@ export function unmount(vnode, parentVNode, skipRemove) {
 	// Must be set to `undefined` to properly clean up `_nextDom`
 	// for which `null` is a valid value. See comment in `create-element.js`
 	vnode._parent = vnode._dom = vnode._nextDom = undefined;
-}
-
-/** The `.render()` method for a PFC backing instance. */
-function doRender(props) {
-	return this.constructor(props);
 }

@@ -28,7 +28,8 @@
     "test:watch": "pnpm run test --watch"
   },
   "dependencies": {
-    "@babel/runtime": "^7.22.5"
+    "@babel/runtime": "^7.22.5",
+    "tslib": "^2.6.2"
   },
   "devDependencies": {
     "@babel/core": "^7.22.5",
