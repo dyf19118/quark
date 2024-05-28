@@ -565,7 +565,7 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
     );
   }
 
-  $nextTick(cb: (...args: any[]) => any) {
+  $nextTick(cb?: (...args: any[]) => any) {
     return nextTick(cb, this);
   }
 
