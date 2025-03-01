@@ -4,7 +4,7 @@ import { isFunction } from './core/util'
 import { PropertyDeclaration } from "./models"
 import DblKeyMap from "./dblKeyMap"
 import { EventController, EventHandler } from "./eventController"
-import {version} from '../package.json'
+import { version } from '../package.json'
 import { Dep, nextTick, UserWatcherOptions, Watcher } from './computed';
 import type { ReactiveControllerHost, ReactiveController } from "./reactiveController"
 export { createRef } from './core/create-element'
@@ -14,8 +14,8 @@ export type { ReactiveControllerHost, ReactiveController }
 
 export { Fragment }
 
-if(process.env.NODE_ENV === 'development') {
-  console.info(`%cquarkc@${version}`, 'color: white;background:#9f57f8;font-weight:bold;font-size:10px;padding:2px 6px;border-radius: 5px','Running in dev mode.')
+if (process.env.NODE_ENV === 'development') {
+  console.info(`%cquarkc@${version}`, 'color: white;background:#9f57f8;font-weight:bold;font-size:10px;padding:2px 6px;border-radius: 5px', 'Running in dev mode.')
 }
 
 type Falsy = false | 0 | '' | null | undefined
@@ -37,9 +37,9 @@ const defaultPropertyDeclaration: PropertyDeclaration = {
       case Boolean:
         return value !== null;
       default:
-        // noop
+      // noop
     }
-  
+
     return value;
   },
 };
@@ -61,16 +61,25 @@ export const internalProp = () => {
 
 export const state = () => {
   return (target: QuarkElement, propName: string) => {
-    return (target.constructor as typeof QuarkElement).createState(propName);
+    (target.constructor as typeof QuarkElement).createState(propName);
   };
 };
 
 export const computed = () => {
   return (target: QuarkElement, propName: string, descriptor: PropertyDescriptor) => {
-    return (target.constructor as typeof QuarkElement).computed(
-      propName,
-      descriptor,
-    );
+    let watcher: Watcher;
+    return {
+      configurable: true,
+      enumerable: true,
+      get(this: QuarkElement) {
+        if (!watcher) {
+          watcher = new Watcher(this, descriptor.get!, { computed: true });
+        }
+
+        watcher.dep.depend();
+        return watcher.get();
+      },
+    };
   };
 };
 
@@ -86,12 +95,6 @@ export const watch = (path: string, options?: Omit<UserWatcherOptions, 'cb'>) =>
 }
 
 type PropertyDescriptorCreator = (defaultValue?: any) => PropertyDescriptor
-
-const StateDescriptors: DblKeyMap<
-  typeof QuarkElement,
-  string,
-  PropertyDescriptorCreator
-> = new DblKeyMap();
 
 /** convert attribute value to prop value */
 type Attr2PropConverter = (value: string | null) => any
@@ -181,14 +184,10 @@ function getWrapperClass(target: typeof QuarkElement, style: string) {
           shadowRoot.append(styleEl);
         }
       }
+      const { _stateDesc } = target
 
-      // * 获取包装类实例的父类（即继承了QuarkElement的类——用户书写的组件类）
-      // * get parent class (user-defined component class that extends QuarkElement) of wrapper class
-      const UserComp = Object.getPrototypeOf(this.constructor) as typeof QuarkElement;
-      const stateDescriptors = StateDescriptors.get(UserComp);
-      
-      if (stateDescriptors?.size) {
-        stateDescriptors.forEach((descriptorCreator, propName) => {
+      if (_stateDesc?.size) {
+        _stateDesc.forEach((descriptorCreator, propName) => {
           Object.defineProperty(
             this,
             propName,
@@ -201,8 +200,8 @@ function getWrapperClass(target: typeof QuarkElement, style: string) {
        * 重写类的属性描述符，并重写属性初始值。
        * 注：由于子类的属性初始化晚于当前基类的构造函数，同名属性会导致属性描述符被覆盖，所以必须放在基类构造函数之后执行
        */
-      const propDefs = PropDefs.get(UserComp);
-      
+      const propDefs = PropDefs.get(target);
+
       if (propDefs?.size) {
         propDefs.forEach((def, attrName) => {
           const {
@@ -219,7 +218,7 @@ function getWrapperClass(target: typeof QuarkElement, style: string) {
             Object.defineProperty(
               this,
               propName,
-              UserComp.getStateDescriptor(propName)(defaultValue)
+              target.getStateDescriptor(propName)(defaultValue)
             );
             return;
           }
@@ -276,7 +275,7 @@ function getWrapperClass(target: typeof QuarkElement, style: string) {
         });
       }
 
-      const computedDescriptors = ComputedDescriptors.get(UserComp)
+      const computedDescriptors = ComputedDescriptors.get(target)
 
       if (computedDescriptors?.size) {
         computedDescriptors.forEach((descriptorCreator, propKey) => {
@@ -288,7 +287,7 @@ function getWrapperClass(target: typeof QuarkElement, style: string) {
         });
       }
 
-      const watchers = UserWatchers.get(UserComp)
+      const watchers = UserWatchers.get(target)
 
       if (watchers?.size) {
         watchers.forEach(({
@@ -314,9 +313,10 @@ export function customElement(
     tag,
     style = '',
   } = typeof params === 'string'
-    ? { tag: params }
-    : params;
+      ? { tag: params }
+      : params;
 
+  // * target: User-defined class that to be decorated
   return (target: typeof QuarkElement) => {
     if (!customElements.get(tag)) {
       customElements.define(tag, getWrapperClass(target, style));
@@ -325,15 +325,20 @@ export function customElement(
 }
 
 export class QuarkElement extends HTMLElement implements ReactiveControllerHost {
+  static _stateDesc = new Map<
+    string,
+    PropertyDescriptorCreator
+  >;
+
   static h = h;
-  
+
   static Fragment = Fragment;
-  
+
   private _updatedQueue: (() => void)[] = [];
 
   /** 组件是否已挂载 */
   private _mounted = false;
-  
+
   private _renderWatcher: Watcher | undefined = undefined;
 
   private queueUpdated(cb: () => void) {
@@ -355,7 +360,7 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
   /** handler for processing tasks after render */
   public postRender() {
     let mounted = this._mounted;
-    
+
     if (!mounted) {
       this._mounted = true;
       const hasPendingUpdate = !!this._updatedQueue.length;
@@ -380,7 +385,7 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
         }
       }
     }
-    
+
     this._updatedQueue.forEach(cb => cb());
     this._updatedQueue = [];
 
@@ -395,11 +400,10 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
   protected static getStateDescriptor(propName: string) {
     return (defaultValue?: any) => {
       let value = defaultValue;
-      let dep: Dep | undefined;
-      const getDep = () => dep || (dep = new Dep());
+      const dep = new Dep()
       return {
         get(this: QuarkElement): any {
-          getDep().depend()
+          dep.depend()
           return value;
         },
         set(this: QuarkElement, newValue: string | boolean | null) {
@@ -414,7 +418,7 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
           }
 
           value = newValue;
-          getDep().notify();
+          dep.notify();
 
           if (this.hasDidUpdateCb()) {
             this.queueUpdated(() => {
@@ -441,7 +445,7 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
   }
 
   static createState(propName: string) {
-    StateDescriptors.set(this, propName, this.getStateDescriptor(propName));
+    this._stateDesc.set(propName, this.getStateDescriptor(propName))
   }
 
   static computed(propName: string, descriptor: PropertyDescriptor) {
@@ -508,7 +512,7 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
         if (isFunction(converter)) {
           val = converter(val, type);
         }
-        
+
         this[propName] = val;
       }
     );
@@ -572,12 +576,12 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
   /**
    * 此时组件 dom 已插入到页面中，等同于 connectedCallback() { super.connectedCallback(); }
    */
-  componentDidMount() {}
+  componentDidMount() { }
 
   /**
    * disconnectedCallback 触发时、dom 移除前执行，等同于 disconnectedCallback() { super.disconnectedCallback(); }
    */
-  componentWillUnmount() {}
+  componentWillUnmount() { }
 
   /**
    * @deprecated
@@ -608,15 +612,13 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
   }
 
   /** @deprecated use \@watch directive instead for same purposes */
-  componentDidUpdate(propName: string, oldValue: any, newValue: any) {}
+  componentDidUpdate(propName: string, oldValue: any, newValue: any) { }
 
   /** called when all props and states updated */
-  componentUpdated() {}
+  componentUpdated() { }
 
   /**
-   * 组件的 render 方法，
-   * 自动执行 this.shadowRoot.innerHTML = this.render()
-   * @returns VNode
+   * 组件的 render 方法，返回组件的VDOM
    */
   render(): VElem {
     return null;
@@ -656,7 +658,7 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
     }
 
     const { propName } = prop;
-    
+
     // React specific patch, for more detailed explanation: https://github.com/facebook/react/issues/9230
     // But also works for unintentionally set attribute value to string 'false', it's not recommended in HTML spec.
     // For custom elements, react will pass down the boolean value as-is, that is,
@@ -673,7 +675,7 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
           if (this.hasDidUpdateCb()) {
             this._oldVals.set(propName, oldVal)
           }
-          
+
           this[propName] = newVal;
           return;
         }
@@ -688,16 +690,16 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
       this._oldVals.delete(propName)
       resolvedOldVal = oldValReset
     }
-    
+
     resolvedOldVal = prop.converter(resolvedOldVal);
-    
+
     if (this.shouldPreventUpdate(propName, resolvedOldVal, newValue)) {
       return;
     }
 
     // notify changes to this prop's watchers
     prop.dep.notify()
-      
+
     if (this.hasDidUpdateCb()) {
       this.queueUpdated(() => {
         this.componentDidUpdate(

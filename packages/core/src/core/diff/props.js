@@ -1,6 +1,15 @@
 import { IS_NON_DIMENSIONAL } from '../constants';
 import options from '../options';
 
+/** internal properties of VNodes —— children、key */
+const VNodeProps = new Set(['children', 'key'])
+/** 
+ * properties of controls like input and checkbox —— value、checked
+ * 
+ * support unControlled components only
+ */
+const ControlProps = new Set(['value', 'checked'])
+
 /**
  * Diff the old and new properties of a VNode and apply changes to the DOM node
  * @param dom The DOM node to apply
@@ -10,23 +19,20 @@ import options from '../options';
  * @param {boolean} isSvg Whether or not this node is an SVG node
  */
 export function diffProps(dom, newProps, oldProps, isSvg) {
-	let i;
-
-	for (i in oldProps) {
-		if (i !== 'children' && i !== 'key' && !(i in newProps)) {
-			setProperty(dom, i, null, oldProps[i], isSvg);
+	for (const key in oldProps) {
+		// * remove properties that are no longer property of dom
+		if (!VNodeProps.has(key) && !(key in newProps)) {
+			setProperty(dom, key, null, oldProps[key], isSvg);
 		}
 	}
 
-	for (i in newProps) {
+	for (const key in newProps) {
 		if (
-			i !== 'children' &&
-			i !== 'key' &&
-			i !== 'value' &&
-			i !== 'checked' &&
-			oldProps[i] !== newProps[i]
+			!VNodeProps.has(key)
+			&& !ControlProps.has(key)
+			&& oldProps[key] !== newProps[key]
 		) {
-			setProperty(dom, i, newProps[i], oldProps[i], isSvg);
+			setProperty(dom, key, newProps[key], oldProps[key], isSvg);
 		}
 	}
 }
@@ -124,7 +130,7 @@ export function setProperty(dom, name, value, oldValue, isSvg) {
 				} else {
 					dom[name] = value == null ? '' : value;
 				}
-				
+
 				// labelled break is 1b smaller here than a return statement (sorry)
 				break o;
 			} catch (e) { }
@@ -137,6 +143,8 @@ export function setProperty(dom, name, value, oldValue, isSvg) {
 		// amount of exceptions would cost us too many bytes. On top of
 		// that other VDOM frameworks also always stringify `false`.
 
+		// * update properties like data-* or aria-* that are not allowed to directly modified with "dom[name]" syntax
+		// or other non-formal user-defined properties
 		if (typeof value === 'function') {
 			// never serialize functions as attribute values
 		} else if (value != null && (value !== false || name.indexOf('-') != -1)) {

@@ -27,13 +27,13 @@ class MyComponent extends QuarkElement {
   private _counterTimer = 0;
 
   initCounter() {
-    const runCounter = () => {
-      this._counterTimer = window.setTimeout(() => {
-        this.counter++;
-        runCounter();
-      }, 1000)
-    };
-    runCounter();
+    // const runCounter = () => {
+    //   this._counterTimer = window.setTimeout(() => {
+    //     this.counter++;
+    //     runCounter();
+    //   }, 1000)
+    // };
+    // runCounter();
   }
 
   componentDidMount() {
@@ -46,7 +46,7 @@ class MyComponent extends QuarkElement {
     window.clearTimeout(this._counterTimer);
   }
 
-  @watch('count', { immediate: true })
+  @watch('count')
   countLogger(newVal, oldVal) {
     console.log('home countLogger', newVal, oldVal);
     this.loggerRunCount++;
@@ -65,10 +65,10 @@ class MyComponent extends QuarkElement {
   render() {
     return (
       <div className="main">
-        home {this.welcomes.join('')}
-        <br/>passed down count: {this.count}
+        home
+        <br />passed down count: {this.count}
         <br />watcher run count: {this.loggerRunCount}
-        <br/>{this.counterGreet}
+        <br />{this.counterGreet}
       </div>
     );
   }

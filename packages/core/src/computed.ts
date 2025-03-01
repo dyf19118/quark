@@ -4,8 +4,7 @@ import { noop } from "./core/util"
 /** dependency universal id */
 let uid = 0
 
-/** current watcher that is collecting it's dependencies */
-export let currDepTarget: Watcher | undefined
+const depTargetStack: Watcher[] = []
 
 export type WatcherGetter = () => any
 
@@ -62,28 +61,12 @@ export const nextTick = (cb?: (...args: any[]) => any, ctx?: any) => {
   return _promise;
 };
 
-// const flushUpdatedQueue = (watchers: Watcher[]) => {
-//   let i = watchers.length
-
-//   while (i--) {
-//     const watcher = watchers[i]
-//     const {
-//       render,
-//       inst,
-//     } = watcher
-
-//     if (render && inst) {
-//       inst.flushUpdatedQueue()
-//     }
-//   }
-// }
-
 /** flush watcher queue */
 const flushWatcherQueue = () => {
   flushing = true;
   // make sure updates from parent to child, user watchers to render watchers.
   watchers.sort((a, b) => a.id - b.id);
-  
+
   for (flushIndex = 0; flushIndex < watchers.length; flushIndex++) {
     const watcher = watchers[flushIndex]
     watcherIds.delete(watcher.id)
@@ -108,7 +91,7 @@ const queueWatcher = (watcher: Watcher) => {
   }
 
   watcherIds.add(id)
-    
+
   if (!flushing) {
     watchers.push(watcher)
   } else {
@@ -174,7 +157,7 @@ export class Watcher {
   cb: ((newVal: any, oldVal: any) => void)
   /** is render watcher */
   render: boolean
-  
+
   constructor(
     inst: QuarkElement,
     getterOrExpr: WatcherGetter | string,
@@ -200,13 +183,16 @@ export class Watcher {
     if (typeof getterOrExpr === 'function') {
       this.getter = getterOrExpr
     } else {
+      const exprs = getterOrExpr.split('.'), exprCnt = exprs.length
       this.getter = () => {
-        return getterOrExpr
-          .split('.')
-          .reduce((acc, pathSeg) => acc?.[pathSeg], inst);
+        let cur = inst
+        for (let i = 0; i < exprCnt && cur; i++) {
+          cur = cur[exprs[i]]
+        }
+        return cur
       }
     }
-    
+
     this.cb = cb
 
     if (!computed) {
@@ -230,13 +216,13 @@ export class Watcher {
 
   /** invoke getter, recompute value, manage dependencies */
   compute() {
-    setCurrDepTarget(this)
+    depTargetStack.push(this)
     // reset deps collection
     this.oldDeps = this.deps
     this.deps = new Map()
     // invoke getter and collect new dependencies
     const value = this.getter.call(this.inst)
-    popCurrDepTarget()
+    depTargetStack.pop()
     this.cleanDeps()
     return value
   }
@@ -262,8 +248,8 @@ export class Watcher {
 
   /** mark itself as a dependency of current watcher */
   depend() {
-    if (currDepTarget) {
-      currDepTarget.addDep(this.dep)
+    if (depTargetStack.length) {
+      depTargetStack[depTargetStack.length - 1].addDep(this.dep)
     }
   }
 
@@ -310,7 +296,7 @@ export class Dep {
   id: number
   /** watchers that are watching this dependecy, listening to its changes */
   watchers: Set<Watcher>
-  
+
   constructor() {
     this.id = uid++
     this.watchers = new Set()
@@ -338,21 +324,8 @@ export class Dep {
    * in other words, current watcher depends on it.
   */
   depend() {
-    if (currDepTarget) {
-      currDepTarget.addDep(this)
+    if (depTargetStack.length) {
+      depTargetStack[depTargetStack.length - 1].addDep(this)
     }
   }
-}
-
-const depTargetStack: Watcher[] = []
-
-/** setter for {@link currDepTarget} */
-export const setCurrDepTarget = (target: Watcher) => {
-  depTargetStack.push(target)
-  currDepTarget = target
-}
-
-export const popCurrDepTarget = () => {
-  depTargetStack.pop()
-  currDepTarget = depTargetStack[depTargetStack.length - 1]
 }

@@ -59,7 +59,7 @@ export function diff(
 
 					return vnode;
 				});
-				
+
 				// quit the diff early
 				return;
 			}
@@ -95,7 +95,7 @@ export function diff(
 			newVNode._dom = oldVNode._dom;
 			return;
 		}
-		
+
 		newVNode._dom = diffElementNodes(
 			oldVNode?._dom,
 			newVNode,

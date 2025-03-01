@@ -44,17 +44,14 @@ export function diffChildren(
 			typeof childVNode === 'function'
 		) {
 			childVNode = newParentVNode._children[i] = null;
-		}
-
-		// If this newVNode is being reused (e.g. <div>{reuse}{reuse}</div>) in the same diff,
-		// or we are rendering a component copy the oldVNodes so it can have
-		// it's own DOM & etc. pointers
-		else if (
+		} else if (
 			typeof childVNode === 'string' ||
 			typeof childVNode === 'number' ||
-			// eslint-disable-next-line valid-typeof
 			typeof childVNode === 'bigint'
 		) {
+			// If this newVNode is being reused (e.g. <div>{reuse}{reuse}</div>) in the same diff,
+			// or we are rendering a component copy the oldVNodes so it can have
+			// it's own DOM & etc. pointers
 			childVNode = newParentVNode._children[i] = createVNode(
 				null,
 				childVNode,
@@ -101,25 +98,21 @@ export function diffChildren(
 		// (holes).
 		oldVNode = oldChildren[i];
 
-		if (
-			oldVNode === null ||
-			(oldVNode &&
-				childVNode.key == oldVNode.key &&
-				childVNode.type === oldVNode.type)
-		) {
+		/** is the old vnode owns the same key and type with current new node */
+		const isSameKeyed = (oldVNode) => oldVNode && oldVNode.key == childVNode.key && oldVNode.type === childVNode.type
+
+		if (oldVNode === null || (oldVNode && isSameKeyed(oldVNode))) {
 			oldChildren[i] = undefined;
 		} else {
+			// TODO: use hash map to search the oldVNode with same key efficiently
+
 			// Either oldVNode === undefined or oldChildrenLength > 0,
 			// so after this loop oldVNode == null or oldVNode is a valid value.
 			for (j = 0; j < oldChildrenLength; j++) {
 				oldVNode = oldChildren[j];
 				// If childVNode is unkeyed, we only match similarly unkeyed nodes, otherwise we match by key.
 				// We always match by type (in either case).
-				if (
-					oldVNode &&
-					childVNode.key == oldVNode.key &&
-					childVNode.type === oldVNode.type
-				) {
+				if (oldVNode && isSameKeyed(oldVNode)) {
 					oldChildren[j] = undefined;
 					break;
 				}
