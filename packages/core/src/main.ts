@@ -99,30 +99,6 @@ type PropertyDescriptorCreator = (defaultValue?: any) => PropertyDescriptor
 /** convert attribute value to prop value */
 type Attr2PropConverter = (value: string | null) => any
 
-/** all declared props' definitions, with attribute name as sub key */
-const PropDefs: DblKeyMap<
-  typeof QuarkElement,
-  string,
-  {
-    /** prop decorator options passed */
-    options: PropertyDeclaration;
-    /** created dependency for the prop, it's initialization will be delayed until Object.defineProperty */
-    propName: string;
-  }
-> = new DblKeyMap();
-
-/** quark element instance's props' map, with attribute name as sub key */
-const Props: DblKeyMap<
-  QuarkElement,
-  string,
-  {
-    /** created dependency for the prop */
-    dep: Dep;
-    converter: Attr2PropConverter;
-    propName: string;
-  }
-> = new DblKeyMap();
-
 const ComputedDescriptors: DblKeyMap<
   typeof QuarkElement,
   string,
@@ -140,23 +116,23 @@ const UserWatchers: DblKeyMap<
 function getWrapperClass(target: typeof QuarkElement, style: string) {
   return class QuarkElementWrapper extends target {
     static get _observedAttrs() {
-      return [...(PropDefs.get(target)?.entries() || [])].filter(([_, { options }]) => !!options.observed);
+      return Array.from(this._propDef.entries()).filter((def) => !!def[1].options.observed);
     }
 
     /** ! HTML SPEC field: specify the attribute names to watch for changes */
     static get observedAttributes() {
-      return this._observedAttrs.map(([attrName]) => attrName);
+      return this._observedAttrs.map(def => def[0]);
     }
 
     static _isInternalProp(propName: string) {
-      const def = PropDefs.get(target)?.get(propName);
+      const def = this._propDef.get(propName);
       return def
         ? !!def.options.internal
         : false;
     }
 
     static _isBoolProp(attrName: string) {
-      const def = PropDefs.get(target)?.get(attrName);
+      const def = this._propDef.get(attrName);
 
       if (!def) {
         return false;
@@ -184,9 +160,12 @@ function getWrapperClass(target: typeof QuarkElement, style: string) {
           shadowRoot.append(styleEl);
         }
       }
-      const { _stateDesc } = target
+      const {
+        _stateDesc,
+        _propDef,
+      } = target
 
-      if (_stateDesc?.size) {
+      if (_stateDesc.size) {
         _stateDesc.forEach((descriptorCreator, propName) => {
           Object.defineProperty(
             this,
@@ -200,10 +179,8 @@ function getWrapperClass(target: typeof QuarkElement, style: string) {
        * 重写类的属性描述符，并重写属性初始值。
        * 注：由于子类的属性初始化晚于当前基类的构造函数，同名属性会导致属性描述符被覆盖，所以必须放在基类构造函数之后执行
        */
-      const propDefs = PropDefs.get(target);
-
-      if (propDefs?.size) {
-        propDefs.forEach((def, attrName) => {
+      if (_propDef.size) {
+        _propDef.forEach((def, attrName) => {
           const {
             options: {
               type,
@@ -243,11 +220,11 @@ function getWrapperClass(target: typeof QuarkElement, style: string) {
             return value;
           };
           const dep = new Dep();
-          Props.set(this, attrName, {
+          this._props.set(attrName, {
             propName,
             dep,
             converter: convertAttrValue,
-          });
+          })
           // make attribute reactive
           Object.defineProperty(
             this,
@@ -325,18 +302,38 @@ export function customElement(
 }
 
 export class QuarkElement extends HTMLElement implements ReactiveControllerHost {
+  /** Save descriptors of properties decorated by \@state decorator */
   static _stateDesc = new Map<
     string,
     PropertyDescriptorCreator
+  >;
+
+  /** Save definition of \@property decorator, with HTML attribute name as key */
+  static _propDef = new Map<
+    string,
+    {
+      /** prop decorator options passed */
+      options: PropertyDeclaration;
+      /** created dependency for the prop, it's initialization will be delayed until Object.defineProperty */
+      propName: string;
+    }
   >;
 
   static h = h;
 
   static Fragment = Fragment;
 
+  /** Save configuration of \@property decorated properties, with their HTML attribute name as key */
+  _props = new Map<string, {
+    /** created dependency for the prop */
+    dep: Dep;
+    converter: Attr2PropConverter;
+    propName: string;
+  }>
+
   private _updatedQueue: (() => void)[] = [];
 
-  /** 组件是否已挂载 */
+  /** did component already mounted 组件是否已挂载 */
   private _mounted = false;
 
   private _renderWatcher: Watcher | undefined = undefined;
@@ -360,6 +357,7 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
   /** handler for processing tasks after render */
   public postRender() {
     let mounted = this._mounted;
+    this._controllers.forEach((c) => c[mounted ? 'hostUpdated' : 'hostMounted']?.());
 
     if (!mounted) {
       this._mounted = true;
@@ -434,7 +432,7 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
 
   static createProperty(propName: string, options: PropertyDeclaration) {
     const attrName = options.attribute || propName;
-    PropDefs.set(this, attrName, {
+    this._propDef.set(attrName, {
       options: {
         ...defaultPropertyDeclaration,
         ...options,
@@ -484,7 +482,7 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
 
   private eventController: EventController = new EventController();
 
-  private _controllers?: Set<ReactiveController>;
+  private _controllers = new Set<ReactiveController>;
 
   private rootPatch = (newRootVNode: any) => {
     if (this.shadowRoot) {
@@ -528,7 +526,7 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
    * @category controllers
    */
   addController(controller: ReactiveController) {
-    (this._controllers ??= new Set()).add(controller);
+    this._controllers.add(controller);
     if (this.shadowRoot && this.isConnected) {
       controller.hostConnected?.();
     }
@@ -539,7 +537,7 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
    * @category controllers
    */
   removeController(controller: ReactiveController) {
-    this._controllers?.delete(controller);
+    this._controllers.delete(controller);
   }
 
   // Reserve, may expand in the future
@@ -630,8 +628,6 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
         this,
         () => {
           this._render();
-          const renderCbType = this._mounted ? 'hostUpdated' : 'hostMounted';
-          this._controllers?.forEach((c) => c[renderCbType]?.());
           this.postRender();
         },
         { render: true },
@@ -643,15 +639,18 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
 
   connectedCallback() {
     this._updateObservedProps();
-    this._controllers?.forEach((c) => c.hostConnected?.());
+    this._controllers.forEach((c) => c.hostConnected?.());
     this.getOrInitRenderWatcher();
+    if (!this._mounted) {
+      this.postRender()
+    }
   }
 
   /** log old 'false' attribute value before resetting and removing it */
   private _oldVals: Map<string, string | undefined> = new Map()
 
   attributeChangedCallback(attrName: string, oldVal: string, newVal: string) {
-    const prop = Props.get(this)?.get(attrName);
+    const prop = this._props.get(attrName);
 
     if (!prop) {
       return;
@@ -711,15 +710,16 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
     }
   }
 
+  // ! we can't know if custom element was removed entierlly or just disconnected from the document temporarily
+  // it may be inserted into the document later
+  // so we can't just simply do cleanup logic inside `disconnectedCallback`
+  // or we should revert the cleanup works after next time `connectedCallback` called
   disconnectedCallback() {
     if (this.hasOwnLifeCycleMethod('componentWillUnmount')) {
       this.componentWillUnmount();
     }
 
-    Props.delete(this);
-    this.eventController.removeAllListener();
-    this._controllers?.forEach((c) => c.hostDisconnected?.());
-    this.rootPatch(null);
+    this._controllers.forEach((c) => c.hostDisconnected?.());
     this._mounted = false;
   }
 }
