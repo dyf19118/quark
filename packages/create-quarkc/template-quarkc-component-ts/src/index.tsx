@@ -16,7 +16,7 @@ class MyComponent extends QuarkElement {
 
   componentDidMount() {
     // 生命周期
-    console.log("dom loaded!")
+    // console.log("dom loaded!")
     // ...
   }
 
@@ -26,7 +26,7 @@ class MyComponent extends QuarkElement {
         <div>
           <a href="https://quarkc.hellobike.com" target="_blank">
             <img
-              src="https://quark-design.hellobike.com/assets/quark-logo.f9a6a307.png"
+              src="https://fastly.jsdelivr.net/npm/quark-static@latest/quark-logo.png"
               class="logo"
               alt="quark logo"
             />

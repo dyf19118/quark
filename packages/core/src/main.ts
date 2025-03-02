@@ -1,6 +1,6 @@
 import { createElement as h, Fragment, VElem } from './core/create-element'
 import { render } from './core/render'
-import { isFunction } from './core/util'
+import { isFunction, updateDomAttr } from './core/util'
 import { PropertyDeclaration } from "./models"
 import DblKeyMap from "./dblKeyMap"
 import { EventController, EventHandler } from "./eventController"
@@ -18,14 +18,12 @@ if (process.env.NODE_ENV === 'development') {
   console.info(`%cquarkc@${version}`, 'color: white;background:#9f57f8;font-weight:bold;font-size:10px;padding:2px 6px;border-radius: 5px', 'Running in dev mode.')
 }
 
-type Falsy = false | 0 | '' | null | undefined
-
 /** 
- * Check if val is empty. Falsy values except than 'false' and '0' are considered empty.
+ * Check if val is null or undefined.
  * 
- * 判断是否为空值，falsy值中'false'和'0'不算
+ * 判断是否为空值，
  */
-const isEmpty = (val: unknown): val is Exclude<Falsy, false | 0> => !(val || val === false || val === 0);
+const isEmpty = (val: unknown): val is (null | undefined) => val == null;
 
 const defaultPropertyDeclaration: PropertyDeclaration = {
   observed: true,
@@ -35,7 +33,7 @@ const defaultPropertyDeclaration: PropertyDeclaration = {
       case Number:
         return Number(value);
       case Boolean:
-        return value !== null;
+        return value !== null && value !== 'false';
       default:
       // noop
     }
@@ -201,6 +199,7 @@ function getWrapperClass(target: typeof QuarkElement, style: string) {
           }
 
           const isBoolProp = type === Boolean;
+          const hasConverter = isFunction(converter);
           /** convert attribute's value to its decorated counterpart, that is, property's value */
           const convertAttrValue = (value: string | null) => {
             // * For boolean properties, ignore the defaultValue specified.
@@ -208,16 +207,15 @@ function getWrapperClass(target: typeof QuarkElement, style: string) {
             if (
               !isBoolProp
               && isEmpty(value)
-              && !isEmpty(defaultValue)
             ) {
               return defaultValue;
             }
 
-            if (isFunction(converter)) {
-              return converter(value, type);
+            if (!hasConverter) {
+              return value;
             }
 
-            return value;
+            return converter(value, type);
           };
           const dep = new Dep();
           this._props.set(attrName, {
@@ -231,19 +229,11 @@ function getWrapperClass(target: typeof QuarkElement, style: string) {
             propName,
             {
               get(this: QuarkElement) {
-                dep.depend()
+                dep.depend();
                 return convertAttrValue(this.getAttribute(attrName));
               },
               set(this: QuarkElement, val: string | boolean | null) {
-                if (val) {
-                  if (typeof val === 'boolean') {
-                    this.setAttribute(attrName, '');
-                  } else {
-                    this.setAttribute(attrName, val);
-                  }
-                } else {
-                  this.removeAttribute(attrName);
-                }
+                updateDomAttr(this, attrName, val);
               },
               configurable: true,
               enumerable: true,
@@ -495,23 +485,13 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
     this.rootPatch(newRootVNode);
   }
 
-  /** update properties by DOM attributes' changes */
+  /** sync property with its attribute counterpart */
   private _updateObservedProps() {
     (this.constructor as QuarkElementWrapper)._observedAttrs.forEach(
-      ([attrName, {
+      ([_, {
         propName,
-        options: {
-          type,
-          converter,
-        },
       }]) => {
-        let val = this.getAttribute(attrName);
-
-        if (isFunction(converter)) {
-          val = converter(val, type);
-        }
-
-        this[propName] = val;
+        this[propName] = this[propName];
       }
     );
   }
@@ -670,12 +650,13 @@ export class QuarkElement extends HTMLElement implements ReactiveControllerHost 
     // 以避免CSS选择器将[attr="false"]视为等同于[attr]
     if (newVal !== oldVal) {
       if ((this.constructor as QuarkElementWrapper)._isBoolProp(attrName)) {
-        if (newVal === 'false') {
+        if (newVal === 'false' && attrName.indexOf('aria-') === -1) {
           if (this.hasDidUpdateCb()) {
             this._oldVals.set(propName, oldVal)
           }
 
-          this[propName] = newVal;
+          // manually remove the attribute
+          this[propName] = false;
           return;
         }
       }

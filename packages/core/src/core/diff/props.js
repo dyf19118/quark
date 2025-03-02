@@ -1,5 +1,6 @@
 import { IS_NON_DIMENSIONAL } from '../constants';
 import options from '../options';
+import { updateDomAttr } from '../util';
 
 /** internal properties of VNodes —— children、key */
 const VNodeProps = new Set(['children', 'key'])
@@ -147,10 +148,8 @@ export function setProperty(dom, name, value, oldValue, isSvg) {
 		// or other non-formal user-defined properties
 		if (typeof value === 'function') {
 			// never serialize functions as attribute values
-		} else if (value != null && (value !== false || name.indexOf('-') != -1)) {
-			dom.setAttribute(name, value);
 		} else {
-			dom.removeAttribute(name);
+			updateDomAttr(dom, name, value)
 		}
 	}
 }

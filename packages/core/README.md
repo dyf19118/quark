@@ -1,22 +1,15 @@
-
 <p align="center">
-  <a href="https://quarkc.hellobike.com/">
-    <img src="https://github.com/hellof2e/quark-core/assets/14307551/5968d0ed-6d60-4b13-b05b-1e9ba30a5708" >
-  </a>
+  <a href="https://quark-ecosystem.github.io/quarkc-docs/#/"><img src="./logo.png" width="180" alt="vite-plugin-dev-inspector"></a>
 </p>
-<h2 align="center"> Quarkc </h2>
-<div align="center">
 
-Quarkc，跨技术栈/原生组件构建工具。
-
-</div>
+<h2 align="center"> Quarkc —— 无框架，跨框架！ </h2>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/quarkc"><img src="https://img.shields.io/npm/dt/quarkc.svg" alt="Total Downloads"></a>
   <a href="https://www.npmjs.com/package/quarkc">
     <img src="https://img.shields.io/npm/v/quarkc.svg" alt="Published on NPM">
   </a>
-  <a href="https://github.com/hellof2e/quark-core/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/quark-core.svg" alt="License"></a>
+  <a href="https://github.com/hellof2e/quark-core/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/quarkc.svg" alt="License"></a>
 </p>
 
 
@@ -27,53 +20,41 @@ Quarkc，跨技术栈/原生组件构建工具。
   </a>
 </p>
 
-### 优秀案例
-
-|  作者   | github 地址  | 截图 / 链接
-|  ----  | ----  | ----- |
-| @yuhaiyang1  | https://github.com/yuhaiyang1/quarkc-time |  https://unpkg.com/quark-timer@0.0.2/demo.html |
-| @khno  | https://github.com/khno/quark-element-demo-celebrate |  https://unpkg.com/quarkc-demo-celebrate@latest/demo.html |
-| @hellof2e  | https://github.com/hellof2e/quark-doc-header | ![1685501041275](https://github.com/hellof2e/quark-core/assets/14307551/24dd5626-e6a9-452c-9c95-c2cdb8891573) https://quarkc.hellobike.com/#/ |
-| @xsf0105  | https://github.com/xsf0105/dark-light-element |  https://unpkg.com/dark-light-element@latest/demo.html |
-| @dyf19118  | https://github.com/dyf19118/quark-ui-rate |  ![image](https://github.com/hellof2e/quark-cli/assets/14307551/e11e6c49-4c18-4bca-adc3-01a7198ab2e2) |
-| @hellof2e  | https://github.com/hellof2e/quark-doc-home |  ![1686575964690](https://github.com/hellof2e/quark-core/assets/14307551/9618427c-916b-4dfd-b28b-0e8e0f6ce744)  |
-| @zhangfisher  | https://github.com/zhangfisher/lite-tree/tree/master/packages/quark |  [点击查看](https://github.com/zhangfisher/lite-tree/blob/master/docs/tree.png?raw=true)  |
-
+<p align="center">
+<a href="https://stackblitz.com/edit/quarkc-vite-k6t2ge?file=index.html&file=src%2Findex.tsx"><img src="https://developer.stackblitz.com/img/open_in_stackblitz.svg" alt=""></a>
+</p>
 
 ## 介绍
 
-Quarkc(Quark core缩写) 是一个拥有完美开发体验的 web components 工具（jsx + web components）。通过它，您可以开发标准的**跨框架组件** 或 **独立前端应用**（脱离框架的原生web应用，性能可达百分百💯）。
+Quarkc(Quark core缩写) 是一个拥有完美开发体验的 web components 工具（jsx + web components）。通过它，您可以开发 [跨框架组件](https://github.com/hellof2e/quark-core/tree/main/packages/create-quarkc/template-quarkc-component-ts) 或 [独立页面](https://github.com/hellof2e/quark-core/tree/main/packages/create-quarkc/template-quarkc-app-ts)。
 
-## Why Quarkc ?
+## 特性
 
-背景 1:【前端的历史】
+*   无框架，组件可以在任何框架或无框架的环境下使用，让你的代码更具复用性
+*   产物体积极小，性能接近浏览器原生元素
+*   Web Components, Simple, Fast！
+*   浏览器原生API，组件可以跨技术栈使用
+*   没有前端框架 Runtime，Web 组件体积小到极致
+*   Shadow DOM 与 Virtual DOM 的完美融合
+*   组件直接解耦，独立打磨，按需引用
 
-前端发展多年，无论大小公司，一般都存在各种技术栈(React, Angular, Jq, Vue) / 同种技术栈的不同版本（Vue2, Vue3）。如果要开发某个通用组件（比如：营销弹窗），工作量就是 double+（不同技术框架需要分开开发/维护/上线，同技术不同版本可能也需要分开开发/维护/上线）
-
-背景 2:【前端的未来】
-
-前端框架会继续迭代/发展，会有新的版本，新的框架出现。用 Quarkc 开发“通用型组件”，不会随着“前端框架浪潮”而更新迭代（极大降低组件研发/维护成本）。
-
-以上背景，决定了 **前端通用型组件** 的开发和维护成本比较高。
-
-## Quarkc 目标
-
-让 Web 组件实现技术栈无关！
 
 ## 使用
 
-### 组件起手架模版
+### 1、创建组件构建模版工程
 
-1. 工程安装
+创建模版
 ```bash
 npm create quarkc@latest
-cd project-name
+```
 
+启动工程
+```bash
 npm install
 npm start
 ```
 
-2. 自定义组件
+### 2、自定义你的 Custom Elements（组件/元素）
 ```jsx
 import { QuarkElement, property, customElement } from "quarkc"
 import style from "./index.less?inline"
@@ -95,26 +76,7 @@ export default class MyElement extends QuarkElement {
 }
 ```
 
-3. 使用
-
-各种技术栈都能运行。
-```html
-<my-element count="count" />
-
-<!-- vue -->
-<my-element :count="count" />
-
-<!-- react -->
-<my-element count={count} />
-
-<!-- svelte -->
-<my-element {count} />
-
-<!-- angular -->
-<my-element [count]="count" />
-```
-
-### 组件打包
+### 3、Build 打包
 
 打包默认输出为 UMD / ESM 格式
 
@@ -122,53 +84,107 @@ export default class MyElement extends QuarkElement {
 npm run build
 ```
 
-此时，构建产物 `lib/` 下的资源可以直接在项目中被使用。（任何前端项目都可使用～）
+此时，构建产物 `lib/` 下的资源可以直接被任何框架的前端项目中使用。
 
+### 4、使用
+
+##### （1）含有工程管理的前端项目（含有package.json/node_modules等文件）
 ```jsx
-import "your-element"
+import "./lib/your-element"
 
-<my-element></my-element>
+
+<my-element count="count" />
+
+// vue
+// <my-element :count="count" />
+
+// react
+// <my-element count={count} />
+
+// svelte
+// <my-element {count} />
+
+// angular
+// <my-element [count]="count" />
 ```
 
-### 组件发布
+##### （2）无工程管理的前端项目（不含有package.json/node_modules等文件，纯HTML+CSS+JS文件）
 
-可以将组件发布到 npm，安装：
-
-```bash
-npm install your-element
-```
-
-可以作为 CDN 使用
+单个 quarkc 组件，可以直接使用：
 
 ```html
-<script src="https://fastly.jsdelivr.net/npm/quarkc"></script>
-<script src="https://fastly.jsdelivr.net/npm/your-element"></script>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- 引用 npm run build 产物 -->
+    <script type="module" src="./lib/index.mjs"></script>
+  </head>
+  <body>
+    <my-element></my-element>
+  </body>
+</html>
 ```
 
-也可以作为 ES Module 使用（推荐）
-```js
-import "your-element"
+多个 quarkc 组件同时加载，为了共用 quarkc 核心库，您可以选择开启了 `external`：
+```diff
+// vite.config.build.ts
+export default defineConfig({
+  build: {
+    rollupOptions: {
++      external: ['quarkc'],
+    },
+  },
+});
+
+```
+然后，用下面方式单独加载 `quarkc` 核心库：
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script type="importmap">
+      {
+        "imports": {
+          "quarkc": "https://unpkg.com/quarkc@latest/lib/index.browser.js"
+        }
+      }
+    </script>
+    <!-- 引用 npm run build 产物 -->
+    <!-- quarkc 构建的组件1 -->
+    <script type="module" src="my-element1/lib/index.mjs"></script>
+    <!-- quarkc 构建的组件2 -->
+    <script type="module" src="my-element2/lib/index.mjs"></script>
+  </head>
+  <body>
+    <!-- 使用 quarkc 元素/组件 -->
+    <my-element1></my-element1>
+    <my-element2></my-element2>
+  </body>
+</html>
 ```
 
-更多发布相关，详情点击 [发布 Publishing](https://quarkc.hellobike.com/#/zh-CN/docs/publishing)
 
-### 特性
+## 文档
 
-*   **跨技术栈**：组件可以在任何框架或无框架的环境下使用，让你的代码更具复用性
-*   **组件体积极小，性能极高**：因为 Quarkc 使用的是浏览器原生 API，所以你的组件可以达到最优性能，且体积小巧
-*   Web Components, Simple, Fast！
-*   浏览器原生API，组件可以跨技术栈使用
-*   没有前端框架 Runtime，Web 组件体积小到极致
-*   **高性能**设计，Shadow DOM 与 Virtual DOM 融合
-*   组件直接解耦，独立打磨，按需引用
+完整文档，请访问 [https://quark-ecosystem.github.io/quarkc-docs](https://quark-ecosystem.github.io/quarkc-docs)
 
-### 性能参考
+### 联系我们
 
-一个略复杂的组件页面跑分截图：
+添加微信：Sanqi9675
 
-<img width="600" alt="image" src="https://github.com/hellof2e/quark-core/assets/14307551/8eda52c8-4ad7-4e92-ab09-602cf7771d96">
+### 社区示例
 
-### 文档
+|  作者   | github 地址  | 截图 / 链接
+|  ----  | ----  | ----- |
+| @xsf0105  | https://xsf0105.github.io/piano/ |  https://xsf0105.github.io/piano/ |
+| @xsf0105  | https://github.com/xsf0105/dark-light-element |  https://unpkg.com/dark-light-element@latest/demo.html |
+| @hellof2e  | https://github.com/hellof2e/quark-doc-header | ![1685501041275](https://github.com/hellof2e/quark-core/assets/14307551/24dd5626-e6a9-452c-9c95-c2cdb8891573) https://quarkc.hellobike.com/#/ |
+| @yuhaiyang1  | https://github.com/yuhaiyang1/quarkc-time |  https://unpkg.com/quark-timer@0.0.2/demo.html |
+| @dyf19118  | https://github.com/dyf19118/quark-ui-rate |  ![image](https://github.com/hellof2e/quark-cli/assets/14307551/e11e6c49-4c18-4bca-adc3-01a7198ab2e2) |
+| @hellof2e  | https://github.com/hellof2e/quark-doc-home |  ![1686575964690](https://github.com/hellof2e/quark-core/assets/14307551/9618427c-916b-4dfd-b28b-0e8e0f6ce744)  |
+| @zhangfisher  | https://github.com/zhangfisher/lite-tree/tree/master/packages/quark |  [点击查看](https://github.com/zhangfisher/lite-tree/blob/master/docs/tree.png?raw=true)  |
 
-完整文档，请访问 [quarkc.hellobike.com](https://quarkc.hellobike.com)
 
+## License
+
+[MIT LICENSE](./LICENSE)

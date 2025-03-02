@@ -1,5 +1,5 @@
 import { QuarkElement, property, customElement, state, computed } from "quarkc"
-import { Router, RouterModeEnum } from "quark-router"
+import { Router } from "quark-router"
 import "./pages/home"
 import "./pages/sub"
 import "./pages/child"
@@ -66,13 +66,13 @@ class MyComponent extends QuarkElement {
     return true;
   }
 
-  componentDidUpdate(propName) {
-    console.log("parent dom updated!", propName)
+  componentDidUpdate() {
+    // console.log("parent dom updated!")
   }
 
   componentDidMount() {
-    console.log("parent dom loaded!")
-    // this.showWelcome();
+    // console.log("parent dom loaded!")
+    this.showWelcome();
   }
 
   render() {
@@ -82,7 +82,7 @@ class MyComponent extends QuarkElement {
           <div>
             <a href="https://quarkc.hellobike.com" target="_blank">
               <img
-                src="https://quark-design.hellobike.com/assets/quark-logo.f9a6a307.png"
+                src="https://fastly.jsdelivr.net/npm/quark-static@latest/quark-logo.png"
                 class="logo"
                 alt="quark logo"
               />

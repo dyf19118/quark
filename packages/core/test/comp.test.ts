@@ -74,8 +74,8 @@ describe('@property', () => {
     const camelCaseNode = comp.shadowRoot?.querySelector('.test1-camelcase');
     expect(node).to.exist;
     expect(camelCaseNode).to.exist;
-    expect(node!.textContent).to.equal('0');
-    expect(camelCaseNode!.textContent).to.equal('camelcased');
+    expect(node!.textContent).to.equal('lowercased');
+    expect(camelCaseNode!.textContent, 'camelcased name share the same value with lowercased name').to.equal('lowercased');
     comp!.setAttribute('testattr', '1');
     await nextTick();
     expect(node!.textContent).to.equal('1');
@@ -111,8 +111,8 @@ describe('@property', () => {
     expect(node).to.exist;
     // * boolean property with its value default to true should be ignored
     expect(node!.textContent).to.equal('false');
-    // * truthy value except than 'false' and '' will be treated as true
-    comp!.setAttribute('testattr7', '');
+    // * all truthy value, or falsy value except than '' will be treated as true
+    comp!.setAttribute('testattr7', '123');
     await nextTick();
     expect(node!.textContent).to.equal('true');
     comp!.removeAttribute('testattr7');
@@ -120,13 +120,21 @@ describe('@property', () => {
     expect(node!.textContent, 'if not set, treat as false').to.equal('false');
     comp!.setAttribute('testattr7', 'false');
     await nextTick();
-    expect(node!.textContent, 'string false will be treated as true').to.equal('true');
+    expect(node!.textContent, 'string false will be treated as false').to.equal('false');
+    expect(comp!.hasAttribute('testattr7'), 'attribute with string false value should be removed').to.equal(false);
     comp!.testattr7 = false;
     await nextTick();
     expect(node!.textContent).to.equal('false');
     comp!.testattr7 = true;
     await nextTick();
     expect(node!.textContent).to.equal('true');
+
+    // test for aria-* attributes
+    const ariaNode = comp.shadowRoot?.querySelector('.test7-aria');
+    expect(ariaNode).to.exist;
+    // * boolean property with its value default to true should be ignored
+    expect(ariaNode!.textContent).to.equal('false');
+    expect(comp!.hasAttribute('aria-hidden'), 'attribute with string false value should not be removed if it starts with aria-').to.equal(true);
   });
 
   it('given converter, from binary to decimal', async () => {
@@ -159,6 +167,16 @@ describe('@property', () => {
     comp!.testattr6 = ['welcome', 'to', 'japari', 'park!'];
     await nextTick();
     expect(node!.textContent).to.equal('welcome to japari park!');
+  });
+
+  it('not set, use default value', async () => {
+    const comp = await render();
+    const node = comp.shadowRoot?.querySelector('.test8');
+    expect(node).to.exist;
+    expect(node!.textContent).to.equal('18');
+    comp!.setAttribute('testattr8', '1');
+    await nextTick();
+    expect(node!.textContent).to.equal('1');
   });
 });
 
